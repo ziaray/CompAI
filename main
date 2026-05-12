@@ -1,5 +1,5 @@
 # Install dependecies claude
-pip install anthropic pdfplumber python-dotenv
+pip install anthropic pdfplumber python-dotenv #installs claude, reviews text from pdfs, reads#
 ``
 
 import os
