@@ -157,7 +157,7 @@ def run_pipeline():
 
     print(email_body)
 
-    send_email(email_body, "pm@example.com")
+    send_email(email_body, "zia.harvey@agf.com") #test - sent to my email#
 
 
 if __name__ == "__main__":
