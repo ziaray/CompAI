@@ -14,9 +14,9 @@ client = anthropic.Anthropic(
     api_key=os.getenv("ANTHROPIC_API_KEY")
 )
 
-# -----------------------------
+#
 # 1. LOAD COMMENTARY
-# -----------------------------
+# 
 def load_pdf_text(file_path):
     text = ""
     with pdfplumber.open(file_path) as pdf:
@@ -27,9 +27,9 @@ def load_pdf_text(file_path):
 def load_text(text):
     return text
 
-# -----------------------------
+# 
 # 2. ANALYZE WITH CLAUDE
-# -----------------------------
+# 
 def analyze_commentary(text):
     prompt = f"""
 You are an institutional fixed income analyst.
@@ -62,9 +62,9 @@ Commentary:
 
     return response.content[0].text
 
-# -----------------------------
+# 
 # 3. GROUP BY CATEGORY
-# -----------------------------
+# 
 def group_by_category(analyses):
     categories = {
         "High Yield": [],
@@ -82,9 +82,9 @@ def group_by_category(analyses):
 
     return categories
 
-# -----------------------------
+#
 # 4. GENERATE EMAIL BODY
-# -----------------------------
+#
 def generate_email(categories):
     email_body = f"""
 Competitor Commentary Digest
@@ -113,9 +113,9 @@ HIGH YIELD
 
     return email_body
 
-# -----------------------------
+# 
 # 5. SEND EMAIL
-# -----------------------------
+# 
 def send_email(body, recipient):
     msg = MIMEText(body)
     msg["Subject"] = "Competitor Monthly Commentary Digest"
@@ -126,9 +126,9 @@ def send_email(body, recipient):
         server.login(os.getenv("EMAIL_USER"), os.getenv("EMAIL_PASS"))
         server.send_message(msg)
 
-# -----------------------------
+#
 # 6. MAIN PIPELINE
-# -----------------------------
+#
 def run_pipeline():
     texts = []
 
