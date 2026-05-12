@@ -1,0 +1,164 @@
+# Install dependecies claude
+pip install anthropic pdfplumber python-dotenv
+``
+
+import os
+import pdfplumber
+import anthropic
+from email.mime.text import MIMEText
+import smtplib
+from datetime import datetime
+
+# Initialize Claude client
+client = anthropic.Anthropic(
+    api_key=os.getenv("ANTHROPIC_API_KEY")
+)
+
+# -----------------------------
+# 1. LOAD COMMENTARY
+# -----------------------------
+def load_pdf_text(file_path):
+    text = ""
+    with pdfplumber.open(file_path) as pdf:
+        for page in pdf.pages:
+            text += page.extract_text() + "\n"
+    return text
+
+def load_text(text):
+    return text
+
+# -----------------------------
+# 2. ANALYZE WITH CLAUDE
+# -----------------------------
+def analyze_commentary(text):
+    prompt = f"""
+You are an institutional fixed income analyst.
+
+Extract and summarize in a clean structured format:
+
+- Fund Name
+- Category (High Yield / Multi Sector / Credit Alternatives)
+- Monthly Return
+- YTD Return
+- Duration
+- Yield
+- 3-5 Key Themes
+- Positioning Changes
+
+Keep it concise and professional.
+
+Commentary:
+{text}
+"""
+
+    response = client.messages.create(
+        model="claude-3-sonnet-20240229",
+        max_tokens=1500,
+        temperature=0.2,
+        messages=[
+            {"role": "user", "content": prompt}
+        ]
+    )
+
+    return response.content[0].text
+
+# -----------------------------
+# 3. GROUP BY CATEGORY
+# -----------------------------
+def group_by_category(analyses):
+    categories = {
+        "High Yield": [],
+        "Multi Sector": [],
+        "Credit Alternatives": []
+    }
+
+    for analysis in analyses:
+        if "High Yield" in analysis:
+            categories["High Yield"].append(analysis)
+        elif "Multi Sector" in analysis:
+            categories["Multi Sector"].append(analysis)
+        else:
+            categories["Credit Alternatives"].append(analysis)
+
+    return categories
+
+# -----------------------------
+# 4. GENERATE EMAIL BODY
+# -----------------------------
+def generate_email(categories):
+    email_body = f"""
+Competitor Commentary Digest
+Date: {datetime.today().strftime('%Y-%m-%d')}
+
+===================================
+
+EXECUTIVE SUMMARY
+Auto-generated overview based on competitor disclosures.
+
+===================================
+
+HIGH YIELD
+"""
+
+    for item in categories["High Yield"]:
+        email_body += f"\n{item}\n"
+
+    email_body += "\n===================================\nMULTI SECTOR\n"
+    for item in categories["Multi Sector"]:
+        email_body += f"\n{item}\n"
+
+    email_body += "\n===================================\nCREDIT ALTERNATIVES\n"
+    for item in categories["Credit Alternatives"]:
+        email_body += f"\n{item}\n"
+
+    return email_body
+
+# -----------------------------
+# 5. SEND EMAIL
+# -----------------------------
+def send_email(body, recipient):
+    msg = MIMEText(body)
+    msg["Subject"] = "Competitor Monthly Commentary Digest"
+    msg["From"] = os.getenv("EMAIL_USER")
+    msg["To"] = recipient
+
+    with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
+        server.login(os.getenv("EMAIL_USER"), os.getenv("EMAIL_PASS"))
+        server.send_message(msg)
+
+# -----------------------------
+# 6. MAIN PIPELINE
+# -----------------------------
+def run_pipeline():
+    texts = []
+
+    texts.append(load_text("""
+    XYZ High Yield Fund returned 1.2% this month.
+    Duration 3.5 years. Yield 7.8%.
+    Increased exposure to energy credits. Reduced CCC risk.
+    Market seen as stable with tightening spreads.
+    """))
+
+    texts.append(load_text("""
+    ABC Multi Sector Fund delivered 0.8%.
+    Rotating into securitized credit and reducing EM exposure.
+    Duration at 4.2. Yield at 6.1%.
+    Cautious outlook due to macro volatility.
+    """))
+
+    analyses = []
+
+    for text in texts:
+        result = analyze_commentary(text)
+        analyses.append(result)
+
+    categories = group_by_category(analyses)
+    email_body = generate_email(categories)
+
+    print(email_body)
+
+    send_email(email_body, "pm@example.com")
+
+
+if __name__ == "__main__":
+    run_pipeline()
